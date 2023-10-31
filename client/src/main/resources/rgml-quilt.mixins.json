@@ -1,0 +1,17 @@
+{
+  "package": "org.duvetmc.rgml.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "required": false,
+  "mixins": [
+    "BlockRendererMixin",
+    "CrashScreenMixin",
+    "DispenserBlockMixin",
+    "EmbeddedResourcesMixin",
+    "EntityRenderDispatcherMixin",
+    "FurnaceBlockEntityMixin",
+    "FurnaceResultSlotMixin",
+    "ItemEntityMixin",
+    "ServerChunkCacheMixin"
+  ],
+  "plugin": "org.duvetmc.mods.rgmlquilt.RgmlMixinPlugin"
+}

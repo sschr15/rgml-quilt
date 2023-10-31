@@ -1,0 +1,28 @@
+pluginManagement {
+	repositories {
+		maven {
+			name = 'Quilt Release'
+			url = 'https://maven.quiltmc.org/repository/release'
+		}
+		maven {
+			name = 'Quilt Snapshot'
+			url = 'https://maven.quiltmc.org/repository/snapshot'
+		}
+		maven {
+			name = 'Fabric'
+			url = 'https://maven.fabricmc.net/'
+		}
+		maven {
+			name = 'Ornithe Releases'
+			url = 'https://maven.ornithemc.net/releases'
+		}
+		maven {
+			name = 'Ornithe Snapshots'
+			url = 'https://maven.ornithemc.net/snapshots'
+		}
+		gradlePluginPortal()
+	}
+}
+
+include ':client'
+//include ':server'

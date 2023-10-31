@@ -1,0 +1,6 @@
+accessWidener v1 named
+accessible method net/minecraft/crafting/CraftingManager registerShaped (Lnet/minecraft/item/ItemStack;[Ljava/lang/Object;)V
+accessible method net/minecraft/crafting/CraftingManager registerShapeless (Lnet/minecraft/item/ItemStack;[Ljava/lang/Object;)V
+accessible field net/minecraft/util/WeightedPicker$Entry weight I
+accessible field net/minecraft/stat/Stats BY_KEY Ljava/util/Map;
+accessible method net/minecraft/entity/Entities register (Ljava/lang/Class;Ljava/lang/String;I)V

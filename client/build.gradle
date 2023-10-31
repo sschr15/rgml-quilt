@@ -1,0 +1,44 @@
+configure(project)
+
+loom {
+	clientOnlyMinecraftJar()
+
+	accessWidenerPath = file('src/main/resources/rgml.accesswidener')
+
+	runs {
+		client {
+			client()
+			name 'Minecraft Client'
+
+			// Enable loader plugins, they're the backbone of this compat layer
+			vmArg '-Dloader.experimental.allow_loading_plugins=true'
+		}
+	}
+
+	mods {
+		"rgml-quilt" {
+			sourceSet project.sourceSets.main
+		}
+	}
+}
+
+ploceus {
+	clientOnlyMappings()
+}
+
+sourceSets {
+	main {
+		java {
+			srcDirs += 'src/main/risugami' // separating RGML code from the rest
+		}
+	}
+}
+
+tasks {
+	classes {
+		doLast {
+			// delete unsafe class (it's only there because later java hates us)
+			file('build/classes/java/main/sun').deleteDir()
+		}
+	}
+}
