@@ -4,9 +4,8 @@ The mod you knew you never wanted.
 
 ## What is this?
 
-RGML Quilt, Risugami Quilt, Risugami's ModLoader Loader, or some other name, is a mod that wraps mods designed for
-Risugami's ModLoader. It uses Quilt's Loader Plugins feature to perform this in a way that works with mods that may
-want to depend on ModLoader.
+RGML Quilt, ModLoader Loader, or some other name, is a mod that wraps mods designed for Risugami's ModLoader. It uses
+Quilt's Loader Plugins feature to perform this in a way that works with mods that may want to depend on ModLoader.
 
 ## Usage
 
