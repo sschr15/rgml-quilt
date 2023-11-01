@@ -1,5 +1,6 @@
 package org.duvetmc.mods.rgmlquilt.util;
 
+import org.quiltmc.loader.api.plugin.QuiltPluginContext;
 import sun.misc.Unsafe;
 
 import java.io.IOException;
@@ -10,12 +11,12 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Stream;
 
 public class Utils {
 	private static final Unsafe UNSAFE;
 	private static final MethodHandles.Lookup TRUSTED_LOOKUP;
-
-	private static final MethodHandle computeHash;
+	private static MethodHandle QuiltPluginManagerImpl_loadZip0;
 
 	static {
 		try {
@@ -27,9 +28,6 @@ public class Utils {
 			long offset = UNSAFE.staticFieldOffset(f2);
 			Object base = UNSAFE.staticFieldBase(f2);
 			TRUSTED_LOOKUP = (MethodHandles.Lookup) UNSAFE.getObject(base, offset);
-
-			Class<?> HashUtil = Class.forName("org.quiltmc.loader.impl.util.HashUtil");
-			computeHash = TRUSTED_LOOKUP.findStatic(HashUtil, "computeHash", MethodType.methodType(byte[].class, Path.class));
 		} catch (Throwable t) {
 			throw new RuntimeException(t);
 		}
@@ -65,12 +63,29 @@ public class Utils {
 		}
 	}
 
-	public static byte[] computeHash(Path p) {
+	public static Path loadZip(QuiltPluginContext context, Path zip) {
 		try {
-			return (byte[]) computeHash.invokeExact(p);
+			if (QuiltPluginManagerImpl_loadZip0 == null) {
+					QuiltPluginManagerImpl_loadZip0 = Utils.lookup().findVirtual(
+						Class.forName("org.quiltmc.loader.impl.plugin.QuiltPluginManagerImpl"),
+						"loadZip0",
+						MethodType.methodType(Path.class, Path.class)
+					);
+			}
+
+			return (Path) QuiltPluginManagerImpl_loadZip0.invoke(context.manager(), zip);
 		} catch (Throwable t) {
 			unsafe().throwException(t);
 			throw new RuntimeException(t);
+		}
+	}
+
+	public static Stream<Path> walk(Path path) {
+		try {
+			return Files.walk(path);
+		} catch (IOException e) {
+			unsafe().throwException(e);
+			throw new RuntimeException(e);
 		}
 	}
 }

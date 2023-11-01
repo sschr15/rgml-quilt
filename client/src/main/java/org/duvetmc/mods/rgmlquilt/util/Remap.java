@@ -13,14 +13,14 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Stream;
 
 public class Remap {
 //	private static final Logger LOGGER = LogManager.getLogger("RGML-Remap");
 	private static Path unmappedTemp = null;
 	private static final List<Path> classpath = new ArrayList<>();
+	private static final List<Path> mods = new ArrayList<>();
 	private static TinyTree mappings = null;
 	private static String runtimeNamespace = "intermediary"; // "named" or "intermediary"
 
@@ -52,7 +52,7 @@ public class Remap {
 		}
 	}
 
-	public static void remap(QuiltPluginContext ctx, Path from, Path to) throws IOException {
+	public static void remap(QuiltPluginContext ctx, Path modPath, Path from, Path to) throws IOException {
 		Files.walkFileTree(from, new SimpleFileVisitor<Path>() {
 			@Override
 			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
@@ -90,16 +90,6 @@ public class Remap {
 			throw new RuntimeException(t);
 		}
 
-        TinyRemapper remapper = TinyRemapper.newRemapper()
-			.withMappings(officialToNamed)
-			.withMappings(out -> {
-				for (String cls : RGML_CLASSES) {
-					out.acceptClass(cls, "org/duvetmc/rgml/" + cls);
-				}
-			})
-			.build();
-
-		List<Path> mods = new ArrayList<>();
 		if (unmappedTemp == null) {
 			// whelp this is a hack
 			unmappedTemp = ctx.manager().createMemoryFileSystem("unmapped");
@@ -126,7 +116,9 @@ public class Remap {
 			});
 
 			// add all the mods in the mod folder to the classpath
-			for (Path path : ctx.manager().getModFolders()) {
+			Set<Path> modFolders = new HashSet<>(ctx.manager().getModFolders());
+			modFolders.add(ctx.manager().getGameDirectory().resolve("mods"));
+			for (Path path : modFolders) {
 				Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
 					@Override
 					public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
@@ -145,8 +137,25 @@ public class Remap {
 			}
 		}
 
-		remapper.readClassPath(classpath.stream().filter(Objects::nonNull).toArray(Path[]::new));
-		remapper.readClassPath(mods.stream().filter(p -> !p.equals(from)).toArray(Path[]::new));
+		TinyRemapper remapper = TinyRemapper.newRemapper()
+			.withMappings(officialToNamed)
+			.withMappings(out -> {
+				for (String cls : RGML_CLASSES) {
+					out.acceptClass(cls, "org/duvetmc/rgml/" + cls);
+				}
+			})
+			.threads(1) // man i hate this
+			.build();
+
+		Path[] paths = Stream.concat(
+			classpath.stream().filter(Objects::nonNull),
+			mods.stream().filter(p -> !p.equals(modPath))
+				.map(p -> Utils.loadZip(ctx, p))
+				.flatMap(Utils::walk)
+				.filter(p -> p.toString().endsWith(".class"))
+		).toArray(Path[]::new);
+
+		remapper.readClassPath(paths);
 		remapper.readInputs(from);
 		remapper.apply((name, bytes) -> {
 			try {

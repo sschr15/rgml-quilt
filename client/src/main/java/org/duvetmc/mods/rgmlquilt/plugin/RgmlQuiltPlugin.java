@@ -25,8 +25,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RgmlQuiltPlugin implements QuiltLoaderPlugin {
-	private static MethodHandle QuiltPluginManagerImpl_loadZip0 = null;
-
 	@Override
 	public void load(QuiltPluginContext context, Map<String, LoaderValue> previousData) {
 		// Prior to mod loading, make sure of some things:
@@ -71,16 +69,7 @@ public class RgmlQuiltPlugin implements QuiltLoaderPlugin {
 				//TODO: use the correct API (waiting for implementation under the hood)
 //				QuiltPluginTask<Path> loadZip = context.manager().loadZip(file);
 
-				if (QuiltPluginManagerImpl_loadZip0 == null) {
-					Class<?> QuiltPluginManagerImpl = Class.forName("org.quiltmc.loader.impl.plugin.QuiltPluginManagerImpl", false, getClass().getClassLoader());
-					QuiltPluginManagerImpl_loadZip0 = Utils.lookup().findVirtual(
-						QuiltPluginManagerImpl,
-						"loadZip0",
-						MethodType.methodType(Path.class, Path.class)
-					);
-				}
-
-				Path root = (Path) QuiltPluginManagerImpl_loadZip0.invoke(context.manager(), file);
+				Path root = Utils.loadZip(context, file);
 
 				AtomicBoolean foundMod = new AtomicBoolean(false);
 

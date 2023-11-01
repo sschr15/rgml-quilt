@@ -49,7 +49,7 @@ public class RisugamiModLoadOption extends ModLoadOption {
 
 			try (FileSystem fs = context.manager().createMemoryFileSystem("temp1" + System.nanoTime()).getFileSystem()) {
 				Path tempRoot = fs.getPath("/");
-				Remap.remap(context, root, tempRoot);
+				Remap.remap(context, path, root, tempRoot);
 				ReflectionInterceptMapper.copyWithIntercepts(tempRoot, remappedRoot);
 			}
 
