@@ -4,6 +4,7 @@
   "required": false,
   "mixins": [
     "BlockRendererMixin",
+    "CraftingResultSlotMixin",
     "CrashScreenMixin",
     "DispenserBlockMixin",
     "EmbeddedResourcesMixin",

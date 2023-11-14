@@ -41,4 +41,9 @@ tasks {
 			file('build/classes/java/main/sun').deleteDir()
 		}
 	}
+
+	processResources {
+		// Disable "up-to-date" status, because loom and/or gradle is dumb
+		outputs.upToDateWhen { false }
+	}
 }

@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(BlockRenderer.class)
 public class BlockRendererMixin {
-	@Unique // forge likes doing funky things, hide away our copy
+	@SuppressWarnings("MissingUnique") // mods might need this to be not unique
 	private static boolean cfgGrassFix;
 
 	@Shadow

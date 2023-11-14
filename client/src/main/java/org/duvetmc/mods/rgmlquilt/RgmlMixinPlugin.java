@@ -6,6 +6,7 @@ import org.quiltmc.loader.api.QuiltLoader;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -48,17 +49,30 @@ public class RgmlMixinPlugin implements IMixinConfigPlugin {
 
 	@Override
 	public void preApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
+		String[] parts = mixinClassName.split("\\.");
+		String targetClassShortName = parts[parts.length - 1];
+		if ("BlockRenderer".equals(targetClassShortName)) {
+            // prevent issues with cfgGrassFix being added twice (usually by Forge if done before us)
+			// (it isn't a problem if Forge applies after us because its mixin plugin is special)
+            targetClass.fields.removeIf(field -> "cfgGrassFix".equals(field.name));
+		}
 	}
 
 	@Override
 	public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
-		String[] parts = targetClassName.split("\\.");
-		String targetClassShortName = parts[parts.length - 1];
-		if ("BlockRenderer".equals(targetClassShortName)) {
+		String[] parts = mixinClassName.split("\\.");
+		String mixinClassShortName = parts[parts.length - 1];
+		if ("BlockRendererMixin".equals(mixinClassShortName)) {
 			// Every field must become public
 			for (FieldNode field : targetClass.fields) {
 				field.access &= ~Opcodes.ACC_PRIVATE;
 				field.access |= Opcodes.ACC_PUBLIC;
+
+				if ("cfgGrassFix".equals(field.name)) {
+					// this is a special added field but things break if mixin sees it wrong
+					if (field.invisibleAnnotations == null) field.invisibleAnnotations = new ArrayList<>();
+					field.invisibleAnnotations.add(new AnnotationNode("LStatic;"));
+				}
 			}
 			// Same for methods
 			for (MethodNode method : targetClass.methods) {
@@ -67,7 +81,7 @@ public class RgmlMixinPlugin implements IMixinConfigPlugin {
 			}
 		}
 
-		if ("CraftingResultSlot".equals(targetClassShortName)) {
+		if ("CraftingResultSlotMixin".equals(mixinClassShortName)) {
 			// Usually this would be done with an @Inject, but it's at a really awkward-to-inject location
 			MethodNode method = targetClass.methods.stream()
 				.filter(m -> "onStackRemovedByPlayer".equals(m.name))

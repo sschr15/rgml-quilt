@@ -36,7 +36,26 @@ public class RgmlModMixinPlugin implements IMixinConfigPlugin {
     }
 
     @Override
-    public void preApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {}
+    public void preApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
+		// Any mod-added static fields must lose their static during mixin application
+		// to prevent conflicts with other mods that add the same field
+		for (FieldNode field : targetClass.fields) {
+			if (field.invisibleAnnotations != null) for (AnnotationNode annotation : field.invisibleAnnotations) {
+				if (annotation.desc.equals("LStatic;")) {
+					field.access &= ~Opcodes.ACC_STATIC;
+				}
+			}
+		}
+
+		// Same with methods (though I think mixin would crash and burn anyway)
+		for (MethodNode method : targetClass.methods) {
+			if (method.invisibleAnnotations != null) for (AnnotationNode annotation : method.invisibleAnnotations) {
+				if (annotation.desc.equals("LStatic;")) {
+					method.access &= ~Opcodes.ACC_STATIC;
+				}
+			}
+		}
+	}
 
     @Override
     public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
@@ -55,7 +74,7 @@ public class RgmlModMixinPlugin implements IMixinConfigPlugin {
             } else if (method.name.equals("$rgml-quilt-overwrite-clinit$")) {
                 Optional<MethodNode> existingInit = targetClass.methods.stream()
                         .filter(m -> m.name.equals("<clinit>"))
-                        .filter(m -> m.desc.equals(method.desc)) // in theory this should always be ()V and true
+                        .filter(m -> m.desc.equals(method.desc)) // in theory this should always be ()V and almost always present
                         .findFirst();
 
                 existingInit.ifPresent(toRemove::add);

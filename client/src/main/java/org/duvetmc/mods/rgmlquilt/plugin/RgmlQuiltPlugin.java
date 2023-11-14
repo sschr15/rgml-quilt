@@ -10,27 +10,36 @@ import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.quiltmc.loader.api.LoaderValue;
 import org.quiltmc.loader.api.QuiltLoader;
+import org.quiltmc.loader.api.gui.QuiltDisplayedError;
 import org.quiltmc.loader.api.gui.QuiltLoaderGui;
 import org.quiltmc.loader.api.gui.QuiltLoaderText;
 import org.quiltmc.loader.api.plugin.QuiltLoaderPlugin;
 import org.quiltmc.loader.api.plugin.QuiltPluginContext;
-import org.quiltmc.loader.api.plugin.QuiltPluginTask;
 import org.quiltmc.loader.api.plugin.gui.PluginGuiTreeNode;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodType;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RgmlQuiltPlugin implements QuiltLoaderPlugin {
+	private static final String RGML_GH_LINK = "https://github.com/sschr15/rgml-quilt";
+
 	@Override
 	public void load(QuiltPluginContext context, Map<String, LoaderValue> previousData) {
 		// Prior to mod loading, make sure of some things:
 		// 1. We're running on Java 8 (later versions break RGML, earlier versions can't run Quilt)
 		String version = System.getProperty("java.version");
 		if (!version.startsWith("8") && !version.startsWith("1.8")) {
+			QuiltDisplayedError error = context.reportError(QuiltLoaderText.of("Java " + version + " detected!"));
+			error.addOpenLinkButton(QuiltLoaderText.of("RGML GitHub"), RGML_GH_LINK);
+			error.setIcon(QuiltLoaderGui.iconLevelError());
+			error.appendDescription(
+				QuiltLoaderText.of("RGML requires Java 8 due to technical limitations in later versions of Java."),
+				QuiltLoaderText.of("You are currently using Java " + version)
+			);
+			error.appendReportText("RGML-Quilt is incompatible with Java " + version + ". Java 8 is required.");
+			context.haltLoading();
 			throw new RuntimeException("RGML currently does not support reflective limitations present in Java 9+.");
 		}
 
@@ -58,7 +67,16 @@ public class RgmlQuiltPlugin implements QuiltLoaderPlugin {
 				loadMods(context, modFolder, treeNode);
 			}
 		} catch (Throwable t) {
-			Utils.unsafe().throwException(t);
+//			Utils.unsafe().throwException(t);
+
+			QuiltDisplayedError error = context.reportError(QuiltLoaderText.of("RGML failed to load mods!"))
+				.appendReportText("RGML-Quilt failed to load mods")
+				.setIcon(QuiltLoaderGui.iconLevelError())
+				.appendThrowable(t);
+
+			error.addOpenLinkButton(QuiltLoaderText.of("RGML GitHub"), RGML_GH_LINK);
+			error.addOpenQuiltSupportButton();
+			context.haltLoading();
 		}
 	}
 
