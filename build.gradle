@@ -1,98 +1,162 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 plugins {
 	id 'java'
 	id 'maven-publish'
-	id 'org.quiltmc.loom' version '1.3.4' apply false
-	id 'ploceus' version '1.4.1' apply false
+	alias libs.plugins.quilt.loom
+	alias libs.plugins.ploceus
+	alias libs.plugins.shadow
 }
 
-def configure(Project project) {
-	project.apply plugin: 'java'
-	project.apply plugin: 'maven-publish'
-	project.apply plugin: 'org.quiltmc.loom'
-	project.apply plugin: 'ploceus'
+loom {
+	clientOnlyMinecraftJar()
 
-	project.base {
-		archivesName = "${project.rootProject.archives_base_name}-${project.environment}"
-	}
-	project.version = "${project.rootProject.version}+mc${project.rootProject.minecraft_version}"
-	project.maven_group = project.rootProject.maven_group
+	accessWidenerPath = file('src/main/resources/rgml.accesswidener')
 
-	project.configurations {
-		shade
-	}
+	runs {
+		client {
+			client()
+			name 'Minecraft Client'
 
-	project.dependencies {
-		minecraft "com.mojang:minecraft:${project.rootProject.minecraft_version}"
-		mappings project.loom.layered {
-			mappings "net.ornithemc:feather:${project.rootProject.minecraft_version}-${project.environment}+build.${project.feather_build}:v2"
-			addLayer project.ploceus.nestedMappings() // remove this line if not using nests
-		}
-		nests "net.ornithemc:nests:${project.rootProject.minecraft_version}-${project.environment}+build.${project.nests_build}" // remove this line if not using nests
-
-		modImplementation "org.quiltmc:quilt-loader:${project.rootProject.loader_version}"
-
-		implementation "org.apache.logging.log4j:log4j-api:2.21.1"
-		implementation "org.apache.logging.log4j:log4j-core:2.21.1"
-
-		include "org.apache.logging.log4j:log4j-api:2.21.1" // needed to not crash from missing dependency
-	}
-
-	project.sourceSets {
-		main {
-			resources {
-				srcDirs += project.rootProject.sourceSets.main.resources.srcDirs
-			}
+			// Enable loader plugins, they're the backbone of this compat layer
+			vmArg '-Dloader.experimental.allow_loading_plugins=true'
 		}
 	}
 
-	project.processResources {
-		filesMatching('quilt.mod.json') {
-			expand project.properties
+	mods {
+		"rgml-quilt" {
+			sourceSet sourceSets.main
+		}
+	}
+}
+
+ploceus {
+	clientOnlyMappings()
+}
+
+sourceSets {
+	main {
+		java {
+			srcDirs += 'src/main/risugami' // separating RGML code from the rest
+		}
+	}
+}
+
+tasks {
+	classes {
+		doLast {
+			// delete unsafe class (it's only there because later java hates us)
+			file('build/classes/java/main/sun').deleteDir()
 		}
 	}
 
-	project.tasks.withType(JavaCompile).configureEach {
-		it.options.encoding = 'UTF-8'
-		it.options.release = 8
+	processResources {
+		// Disable "up-to-date" status, because loom and/or gradle is dumb
+		outputs.upToDateWhen { false }
+	}
+}
+
+version = "${libs.versions.project.get()}+mc${libs.versions.minecraft.get()}"
+
+configurations {
+	shade {
+		transitive = false
+	}
+}
+
+dependencies {
+	minecraft libs.minecraft
+
+	mappings ploceus.featherMappings(libs.versions.ornithe.feather.get())
+	exceptions ploceus.raven(libs.versions.ornithe.exceptions.get())
+	signatures ploceus.sparrow(libs.versions.ornithe.signatures.get())
+	nests ploceus.nests(libs.versions.ornithe.nests.get())
+
+	modImplementation libs.quilt.loader
+
+	implementation libs.log4j.api
+	implementation libs.log4j.core
+
+	implementation libs.bundles.mapping
+	shade libs.bundles.mapping
+	implementation libs.quilt.json
+	shade libs.quilt.json
+
+	include libs.log4j.api // needed to not crash from missing dependency
+}
+
+processResources {
+	def props = [
+	    theVersion: version
+	]
+
+	inputs.properties props
+	filesMatching('quilt.mod.json5') {
+		expand props
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = 'UTF-8'
+//	it.options.release = 8
+}
+
+java {
+	// Still required by IDEs such as Eclipse and Visual Studio Code
+//	sourceCompatibility = JavaVersion.VERSION_1_8
+//	targetCompatibility = JavaVersion.VERSION_1_8
+
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(8)
 	}
 
-	project.java {
-		// Still required by IDEs such as Eclipse and Visual Studio Code
-		sourceCompatibility = JavaVersion.VERSION_1_8
-		targetCompatibility = JavaVersion.VERSION_1_8
+	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task if it is present.
+	// If you remove this line, sources will not be generated.
+	withSourcesJar()
 
-		// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task if it is present.
-		// If you remove this line, sources will not be generated.
-		withSourcesJar()
+	// If this mod is going to be a library, then it should also generate Javadocs in order to aid with development.
+	// Uncomment this line to generate them.
+	// withJavadocJar()
+}
 
-		// If this mod is going to be a library, then it should also generate Javadocs in order to aid with development.
-		// Uncomment this line to generate them.
-		// withJavadocJar()
+// If you plan to use a different file for the license, don't forget to change the file name here!
+jar {
+	from('LICENSE') {
+		rename { "${it}_${base.archivesName.get()}" }
 	}
 
-	// If you plan to use a different file for the license, don't forget to change the file name here!
-	project.jar {
-		from('LICENSE') {
-			rename { "${it}_${project.base.archivesName.get()}" }
-		}
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
 
-		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+tasks.remapJar {
+	archiveClassifier = 'slim'
+}
+
+// replace shadowJar with one that doesn't depend on the main artifact
+def remapShadowJar = tasks.register('remapShadowJar', ShadowJar) {
+	configurations = [project.configurations.shade]
+	archiveClassifier = ''
+	relocate 'net.fabricmc.mappingio', 'org.duvetmc.mods.rgmlquilt.plugin.shade.mappingio'
+	relocate 'net.fabricmc.tinyremapper', 'org.duvetmc.mods.rgmlquilt.plugin.shade.tinyremapper'
+	relocate 'org.quiltmc.parsers.json', 'org.duvetmc.mods.rgmlquilt.plugin.shade.json5'
+	from tasks.remapJar
+}
+
+tasks.build.dependsOn remapShadowJar
+
+// Configure the maven publication
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			from components.java
+		}
 	}
 
-	// Configure the maven publication
-	project.publishing {
-		publications {
-			mavenJava(MavenPublication) {
-				from project.components.java
-			}
-		}
-
-		// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-		repositories {
-			// Add repositories to publish to here.
-			// Notice: This block does NOT have the same function as the block in the top level.
-			// The repositories here will be used for publishing your artifact, not for
-			// retrieving dependencies.
-		}
+	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+	repositories {
+		// Add repositories to publish to here.
+		// Notice: This block does NOT have the same function as the block in the top level.
+		// The repositories here will be used for publishing your artifact, not for
+		// retrieving dependencies.
 	}
 }

@@ -1,0 +1,41 @@
+[versions]
+minecraft = "b1.8.1"
+project = "0.4.0"
+
+# OrnitheMC builds
+ornithe-feather = "23"
+ornithe-nests = "8"
+ornithe-exceptions = "1"
+ornithe-signatures = "1"
+
+# Dependencies
+quilt-loader = "0.28.1"
+quilt-json = "0.3.1"
+log4j = "2.21.1"
+mappingio = "0.6.1"
+tiny-remapper = "0.10.4"
+
+# Plugins
+quilt-loom = "1.8-SNAPSHOT"
+ploceus = "1.10.19"
+shadow = "8.3.6"
+
+[libraries]
+minecraft = { module = "com.mojang:minecraft", version.ref = "minecraft" }
+log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
+log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
+quilt-loader = { module = "org.quiltmc:quilt-loader", version.ref = "quilt-loader" }
+quilt-json = { module = "org.quiltmc.parsers:json", version.ref = "quilt-json" }
+mappingio = { module = "net.fabricmc:mapping-io", version.ref = "mappingio" }
+tiny-remapper = { module = "net.fabricmc:tiny-remapper", version.ref = "tiny-remapper" }
+
+[plugins]
+quilt-loom = { id = "org.quiltmc.loom", version.ref = "quilt-loom" }
+ploceus = { id = "ploceus", version.ref = "ploceus" }
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+
+[bundles]
+mapping = [
+	"mappingio",
+	"tiny-remapper",
+]

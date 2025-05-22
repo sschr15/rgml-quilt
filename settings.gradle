@@ -23,6 +23,3 @@ pluginManagement {
 		gradlePluginPortal()
 	}
 }
-
-include ':client'
-//include ':server'

@@ -1,0 +1,43 @@
+{
+	schema_version: 1,
+	quilt_loader: {
+		group: "org.duvetmc.mods",
+		id: "rgml-quilt",
+		version: "${theVersion}",
+		metadata: {
+			name: "RGML Loader",
+			description: "A mod providing a means to load RGML mods on top of Quilt",
+			contributors: {
+				DuvetMC: "Owner"
+			},
+			contact: {
+				issues: "https://github.com/sschr15/rgml-quilt/issues",
+				sources: "https://github.com/sschr15/rgml-quilt"
+			},
+			icon: "assets/risugami-quilt/icon.png"
+		},
+		intermediate_mappings: "net.fabricmc:intermediary",
+		entrypoints: {
+		},
+		language_adapters: {
+			rgml: "org.duvetmc.mods.rgmlquilt.RgmlLanguageAdapter"
+		},
+		depends: [
+			{
+				id: "quilt_loader",
+				versions: ">=0.27.0"
+			}
+		]
+	},
+	experimental_quilt_loader_plugin: {
+		class: "org.duvetmc.mods.rgmlquilt.plugin.RgmlQuiltPlugin",
+		packages: [
+			"org.duvetmc.mods.rgmlquilt.util",
+			"org.duvetmc.mods.rgmlquilt.api",
+			"org.duvetmc.mods.rgmlquilt.plugin",
+			"org.duvetmc.mods.rgmlquilt.inst"
+		]
+	},
+	mixin: "rgml-quilt.mixins.json",
+	access_widener: "rgml.accesswidener"
+}
