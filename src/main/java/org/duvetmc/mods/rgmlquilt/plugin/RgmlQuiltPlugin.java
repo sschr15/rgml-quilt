@@ -10,6 +10,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.quiltmc.loader.api.LoaderValue;
+import org.quiltmc.loader.api.QuiltLoader;
 import org.quiltmc.loader.api.Version;
 import org.quiltmc.loader.api.gui.QuiltDisplayedError;
 import org.quiltmc.loader.api.gui.QuiltLoaderGui;
@@ -53,6 +54,8 @@ public class RgmlQuiltPlugin implements QuiltLoaderPlugin {
 
 		// Load necessary extra data
 		this.context = context;
+
+		if (QuiltLoader.isDevelopmentEnvironment()) return;
 
 		Version quiltVersion = context.manager().getAllMods("quilt_loader").iterator().next().metadata().version();
 		Version versionWithFixedDependencies = Version.of("9999.9999.9999");

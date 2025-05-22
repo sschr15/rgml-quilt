@@ -97,8 +97,10 @@ public class Remap {
 
 		initMappings();
 
-		IMappingProvider officialToRuntime = TinyUtils.createMappingProvider(mappings, "official", runtimeNamespace);
-		IMappingProvider runtimeToOfficial = TinyUtils.createMappingProvider(mappings, runtimeNamespace, "official");
+		String officialNamespace = mappings.getNamespaceId("clientOfficial") != MappingTreeView.NULL_NAMESPACE_ID ? "clientOfficial" : "official";
+
+		IMappingProvider officialToRuntime = TinyUtils.createMappingProvider(mappings, officialNamespace, runtimeNamespace);
+		IMappingProvider runtimeToOfficial = TinyUtils.createMappingProvider(mappings, runtimeNamespace, officialNamespace);
 
 		if (unmappedTemp == null) {
 			// whelp this is a hack
@@ -127,7 +129,7 @@ public class Remap {
 				if (name.matches("^(?:javax?/|sun/|org/|com/(?!mojang|jcraft)|jdk/).+$")) return; // don't copy java classes that's too much
 				try {
 					Path path = unmappedTemp.resolve(name + ".class");
-					if (name.startsWith("net/minecraft/unmapped")) throw new IllegalStateException("Not allowed: " + name);
+//					if (name.startsWith("net/minecraft/unmapped")) throw new IllegalStateException("Not allowed: " + name);
 					if (!FasterFiles.isDirectory(path.getParent())) {
 						FasterFiles.createDirectories(path.getParent());
 					}
