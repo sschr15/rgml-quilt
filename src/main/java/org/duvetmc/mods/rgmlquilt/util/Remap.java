@@ -160,6 +160,7 @@ public class Remap {
 		Path[] paths = Stream.concat(
 			classpath.stream().filter(Objects::nonNull),
 			mods.stream().filter(p -> !p.equals(modPath))
+				.filter(p -> Files.isDirectory(p) || p.toString().endsWith(".zip") || p.toString().endsWith(".jar"))
 				.map(p -> Files.isDirectory(p) ? p : Utils.loadZip(ctx, p))
 				.flatMap(Utils::walk)
 				.filter(p -> p.toString().endsWith(".class"))

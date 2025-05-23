@@ -94,12 +94,12 @@ public class RgmlMixinPlugin implements IMixinConfigPlugin {
 				"C_2454309",
 				"C_9590849",
 				"C_5818647",
-				"C_9546418;f_6238814;Lnet/minecraft/unmapped/C_9590849;",
-				"C_9546418;f_5933378;Lnet/minecraft/unmapped/C_5818647;",
+				"C_9546418:f_6238814:Lnet/minecraft/unmapped/C_9590849;",
+				"C_9546418:f_5933378:Lnet/minecraft/unmapped/C_5818647;",
 			};
 
 			for (String intermediary : intermediaries) {
-				String[] partsOf = intermediary.split(";");
+				String[] partsOf = intermediary.split(":");
 				String fullClass = "net.minecraft.unmapped." + partsOf[0];
 				String mapped = QuiltLoader.getMappingResolver().mapClassName("intermediary", fullClass);
 				mappings.put(intermediary, mapped.replace('.', '/'));

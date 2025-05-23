@@ -21,9 +21,16 @@ import org.quiltmc.loader.api.plugin.QuiltLoaderPlugin;
 import org.quiltmc.loader.api.plugin.QuiltPluginContext;
 import org.quiltmc.loader.api.plugin.gui.PluginGuiTreeNode;
 import org.quiltmc.loader.api.plugin.solver.ModLoadOption;
+import org.quiltmc.loader.impl.QuiltLoaderImpl;
+import org.quiltmc.loader.impl.game.GameProvider;
+import org.quiltmc.loader.impl.game.minecraft.MinecraftGameProvider;
+import org.quiltmc.loader.impl.launch.common.QuiltLauncher;
+import org.quiltmc.loader.impl.launch.common.QuiltLauncherBase;
+import org.quiltmc.loader.impl.launch.knot.Knot;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodType;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -35,6 +42,7 @@ public class RgmlQuiltPlugin implements QuiltLoaderPlugin {
 
 	private QuiltPluginContext context;
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void load(QuiltPluginContext context, Map<String, LoaderValue> previousData) {
 		// Ensure Minecraft is running on Java 8 (later versions break RGML, earlier versions can't run Quilt)
@@ -55,38 +63,30 @@ public class RgmlQuiltPlugin implements QuiltLoaderPlugin {
 		// Load necessary extra data
 		this.context = context;
 
-		if (QuiltLoader.isDevelopmentEnvironment()) return;
-
-		Version quiltVersion = context.manager().getAllMods("quilt_loader").iterator().next().metadata().version();
-		Version versionWithFixedDependencies = Version.of("9999.9999.9999");
-		if (quiltVersion.compareTo(versionWithFixedDependencies) < 0) {
-			Path self = context.pluginPath();
-			Set<String> foundPackages = new HashSet<>();
-
-			try (Stream<Path> paths = Files.walk(self.resolve("org/duvetmc/mods/rgmlquilt/plugin/shade"))) {
-				paths.filter(Files::isDirectory)
-					.map(Path::toAbsolutePath)
-					.map(Path::toString)
-					.map(s -> s.replace('/', '.'))
-					.map(s -> s.startsWith(".") ? s.substring(1) : s)
-					.forEach(foundPackages::add);
-			} catch (IOException e) {
-				throw Utils.rethrow(e);
-			}
-
-			ClassLoader myLoader = getClass().getClassLoader();
+		if (QuiltLoader.isDevelopmentEnvironment()) {
+			// Way too much reflection to remove mappingio and tinyremapper from classpath :)
 			try {
-				Class<?> QuiltPluginClassLoader = Class.forName("org.quiltmc.loader.impl.plugin.QuiltPluginClassLoader");
-				assert QuiltPluginClassLoader.isInstance(myLoader);
-				MethodHandle getLoadablePackages = Utils.lookup().findGetter(QuiltPluginClassLoader, "loadablePackages", Set.class);
-				//noinspection unchecked
-				Set<String> loadablePackages = ((Set<String>) getLoadablePackages.invoke(myLoader));
-				loadablePackages.addAll(foundPackages);
+				MethodHandle QuiltLauncherBase_getLauncher = Utils.lookup().findStatic(QuiltLauncherBase.class, "getLauncher", MethodType.methodType(QuiltLauncher.class));
+				MethodHandle Knot_classPath = Utils.lookup().findGetter(Knot.class, "classPath", List.class);
+				MethodHandle QuiltLoaderImpl_INSTANCE = Utils.lookup().findStaticGetter(QuiltLoaderImpl.class, "INSTANCE", QuiltLoaderImpl.class);
+				MethodHandle QuiltLoaderImpl_getGameProvider = Utils.lookup().findVirtual(QuiltLoaderImpl.class, "getGameProvider", MethodType.methodType(GameProvider.class));
+				MethodHandle MinecraftGameProvider_miscGameLibraries = Utils.lookup().findGetter(MinecraftGameProvider.class, "miscGameLibraries", List.class);
+
+				Object knot = QuiltLauncherBase_getLauncher.invoke();
+				List<Path> knotClassPath = (List<Path>) Knot_classPath.invoke(knot);
+
+
+				Object quiltInstance = QuiltLoaderImpl_INSTANCE.invoke();
+				Object mcProvider = QuiltLoaderImpl_getGameProvider.invoke(quiltInstance);
+				List<Path> miscGameLibraries = (List<Path>) MinecraftGameProvider_miscGameLibraries.invoke(mcProvider);
+
+				knotClassPath.removeIf(p -> p.getFileName().toString().startsWith("mapping-io-") || p.getFileName().toString().startsWith("tiny-remapper-"));
+				miscGameLibraries.removeIf(p -> p.getFileName().toString().startsWith("mapping-io-") || p.getFileName().toString().startsWith("tiny-remapper-"));
 			} catch (Throwable t) {
 				throw Utils.rethrow(t);
 			}
-		} else {
-			//TODO
+
+			return;
 		}
 
 		// Add all-open fake-mod
