@@ -1,6 +1,6 @@
 [versions]
 minecraft = "b1.8.1"
-project = "0.4.0"
+project = "0.4.1"
 
 # OrnitheMC builds
 ornithe-feather = "23"
